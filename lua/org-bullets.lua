@@ -1,7 +1,9 @@
-local M = {
-  ---@type table 'user config'
-  __config = {},
-}
+
+local M = {}
+
+---@class BulletsConfig
+---@field public show_current_line boolean
+local current_config = {}
 
 local fn = vim.fn
 local api = vim.api
@@ -74,6 +76,8 @@ local function add_conceal_markers()
   end
 end
 
+---Initialise autocommands for the plugin
+---@param config BulletsConfig
 local function setup_autocommands(config)
   local commands = {
     {
@@ -117,13 +121,13 @@ end
 
 function M.bullets()
   add_conceal_markers()
-  setup_autocommands(M.__config)
+  setup_autocommands(current_config)
 end
 
 ---Save the user config and initialise the plugin
----@param conf table
-function M.setup(conf)
-  M.__config = conf
+---@param config BulletsConfig
+function M.setup(config)
+  current_config = config
   require("org-bullets.utils").augroup("OrgBulletsInit", {
     {
       events = { "Filetype" },
