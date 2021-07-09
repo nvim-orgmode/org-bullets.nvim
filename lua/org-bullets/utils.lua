@@ -1,9 +1,10 @@
 local M = {}
+local fmt = string.format
 
 _G.__bullets = __bullets or {}
 
-function _create(f)
-  table.insert(as._store, f)
+local function _create(f)
+  table.insert(__bullets, f)
   return #__bullets
 end
 
@@ -22,7 +23,7 @@ end
 ---@param commands Autocmd[]
 function M.augroup(name, commands)
   vim.cmd("augroup " .. name)
-  vim.cmd "autocmd!"
+  vim.cmd("autocmd!")
   for _, c in ipairs(commands) do
     local command = c.command
     if type(command) == "function" then
@@ -39,8 +40,7 @@ function M.augroup(name, commands)
       )
     )
   end
-  vim.cmd "augroup END"
+  vim.cmd("augroup END")
 end
 
 return M
-
