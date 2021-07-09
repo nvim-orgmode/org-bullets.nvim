@@ -18,7 +18,6 @@ local symbols = {
 
 ---@type table<integer,integer>
 local marks = {}
-local show_current_line = false
 
 ---@type table
 local last_lnum = { mark = nil, lnum = nil }
