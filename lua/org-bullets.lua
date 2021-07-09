@@ -81,7 +81,7 @@ end
 local function setup_autocommands(config)
   local commands = {
     {
-      events = { "InsertLeave", "TextChanged", "TextChangedI" },
+      events = { "InsertLeave", "TextChanged", "TextChangedI", "TextChangedP" },
       targets = { "<buffer>" },
       command = add_conceal_markers,
     },
