@@ -1,15 +1,16 @@
-
 local M = {}
 
 ---@class BulletsConfig
 ---@field public show_current_line boolean
-local current_config = {}
+local config = {
+  show_current_line = false,
+}
 
 local fn = vim.fn
 local api = vim.api
-local fmt = string.format
 
 local org_ns = api.nvim_create_namespace("org_bullets")
+local org_headline_hl = "OrgHeadlineLevel"
 
 local symbols = {
   "◉",
@@ -46,6 +47,53 @@ local function set_mark(virt_text, lnum, start_col, end_col, highlight)
   end
 end
 
+---Set the a single line extmark
+---@param lnum number
+---@param line number
+local function set_line_mark(lnum, line)
+  local match = fn.matchstrpos(line, [[^\*\{1,}\ze\s]])
+  local str, start_col, end_col = match[1], match[2], match[3]
+  if start_col > -1 and end_col > -1 then
+    local level = #str
+    local padding = level <= 0 and "" or string.rep(" ", level - 1)
+    local symbol = padding .. (symbols[level] or symbols[1]) .. " "
+    local highlight = org_headline_hl .. level
+    set_mark({ symbol, highlight }, lnum, start_col, end_col, highlight)
+  end
+end
+
+---Apply the the bullet markers to the whole buffer
+---used on reloading the buffer or on first entering
+local function conceal_buffer()
+  marks = {}
+  api.nvim_buf_clear_namespace(0, org_ns, 0, -1)
+  local lines = api.nvim_buf_get_lines(0, 0, -1, false)
+  for index, line in ipairs(lines) do
+    set_line_mark(index - 1, line)
+  end
+end
+
+---Update only a range of changed lines based on a buffer update
+---@see: :help api-buffer-updates-lua
+---@param _ 'lines' 'the event type'
+---@param buf integer 'the buffer number'
+---@param __ integer 'the changed tick'
+---@param firstline number 'the first line in the changed range'
+---@param ___ number 'the last line'
+---@param new_lastline number 'the updated last line'
+local function update_changed_lines(_, buf, __, firstline, ___, new_lastline)
+  local lines = vim.api.nvim_buf_get_lines(buf, firstline, new_lastline, true)
+  local index = 1
+  for lnum = firstline, new_lastline - 1 do
+    local id = marks[lnum]
+    if id then
+      api.nvim_buf_del_extmark(0, org_ns, id)
+    end
+    set_line_mark(lnum, lines[index])
+    index = index + 1
+  end
+end
+
 ---Re-add the lnum that was revealed on the last cursor move
 ---@param lnum number
 local function apply_previous_extmark(lnum)
@@ -58,36 +106,11 @@ local function apply_previous_extmark(lnum)
   set_mark(mark.virt_text[1], last_lnum.lnum, start_col, end_col, mark.hl_group)
 end
 
-local function add_conceal_markers()
-  api.nvim_buf_clear_namespace(0, org_ns, 0, -1)
-  marks = {}
-
-  local lines = api.nvim_buf_get_lines(0, 0, -1, false)
-  for index, line in ipairs(lines) do
-    local match = fn.matchstrpos(line, [[^\*\{1,}\ze\s]])
-    local str, start_col, end_col = match[1], match[2], match[3]
-    if start_col > -1 and end_col > -1 then
-      local level = #str
-      local padding = level <= 0 and "" or string.rep(" ", level - 1)
-      local symbol = padding .. (symbols[level] or symbols[1]) .. " "
-      local highlight = fmt("OrgHeadlineLevel%s", level)
-      set_mark({ symbol, highlight }, index - 1, start_col, end_col, highlight)
-    end
-  end
-end
-
----Initialise autocommands for the plugin
----@param config BulletsConfig
-local function setup_autocommands(config)
-  local commands = {
-    {
-      events = { "InsertLeave", "TextChanged", "TextChangedI", "TextChangedP" },
-      targets = { "<buffer>" },
-      command = add_conceal_markers,
-    },
-  }
-
-  if config and config.show_current_line then
+--- Initialise autocommands for the plugin
+--- @param conf BulletsConfig
+local function setup_autocommands(conf)
+  local commands = {}
+  if conf and conf.show_current_line then
     table.insert(commands, {
       events = { "CursorMoved" },
       targets = { "<buffer>" },
@@ -120,14 +143,16 @@ local function setup_autocommands(config)
 end
 
 function M.bullets()
-  add_conceal_markers()
-  setup_autocommands(current_config)
+  conceal_buffer()
+  --- TODO: on_lines is not triggered for undo events??
+  api.nvim_buf_attach(0, true, { on_lines = update_changed_lines, on_reload = conceal_buffer })
+  setup_autocommands(config)
 end
 
 ---Save the user config and initialise the plugin
----@param config BulletsConfig
-function M.setup(config)
-  current_config = config
+---@param user_config BulletsConfig
+function M.setup(user_config)
+  config = user_config
   require("org-bullets.utils").augroup("OrgBulletsInit", {
     {
       events = { "Filetype" },
