@@ -1,4 +1,7 @@
-local M = {}
+local M = {
+  ---@type table 'user config'
+  __config = {},
+}
 
 local fn = vim.fn
 local api = vim.api
@@ -72,54 +75,63 @@ local function add_conceal_markers()
   end
 end
 
-local commands = {
-  {
-    events = { "InsertLeave", "TextChanged", "TextChangedI" },
-    targets = { "<buffer>" },
-    command = add_conceal_markers,
-  },
-}
+local function setup_autocommands(config)
+  local commands = {
+    {
+      events = { "InsertLeave", "TextChanged", "TextChangedI" },
+      targets = { "<buffer>" },
+      command = add_conceal_markers,
+    },
+  }
 
-if show_current_line then
-  table.insert(commands, {
-    events = { "CursorMoved" },
-    targets = { "<buffer>" },
-    command = function()
-      local pos = api.nvim_win_get_cursor(0)
-      local lnum = pos[1] - 1
-      local changed = line_changed(lnum)
-      if changed then
-        apply_previous_extmark(lnum)
-      end
-      -- order matters here, this should happen AFTER re-adding previous marks
-      -- also update the line number no matter what
-      local id = marks[lnum]
-      if not id then
-        return
-      end
-      local mark = api.nvim_buf_get_extmark_by_id(0, org_ns, id, { details = true })
-      api.nvim_buf_del_extmark(0, org_ns, id)
-      marks[lnum] = nil
-      if changed then
-        last_lnum = {
-          lnum = lnum,
-          mark = mark,
-        }
-      end
-    end,
-  })
+  if config and config.show_current_line then
+    table.insert(commands, {
+      events = { "CursorMoved" },
+      targets = { "<buffer>" },
+      command = function()
+        local pos = api.nvim_win_get_cursor(0)
+        local lnum = pos[1] - 1
+        local changed = line_changed(lnum)
+        if changed then
+          apply_previous_extmark(lnum)
+        end
+        -- order matters here, this should happen AFTER re-adding previous marks
+        -- also update the line number no matter what
+        local id = marks[lnum]
+        if not id then
+          return
+        end
+        local mark = api.nvim_buf_get_extmark_by_id(0, org_ns, id, { details = true })
+        api.nvim_buf_del_extmark(0, org_ns, id)
+        marks[lnum] = nil
+        if changed then
+          last_lnum = {
+            lnum = lnum,
+            mark = mark,
+          }
+        end
+      end,
+    })
+  end
+  require("org-bullets.utils").augroup("OrgBullets", commands)
 end
 
 function M.bullets()
-  require("org-bullets.utils").augroup("OrgBullets", commands)
   add_conceal_markers()
+  setup_autocommands(M.__config)
 end
 
-M.__config = nil
 ---Save the user config and initialise the plugin
 ---@param conf table
 function M.setup(conf)
   M.__config = conf
+  require("org-bullets.utils").augroup("OrgBulletsInit", {
+    {
+      events = { "Filetype" },
+      targets = { "org" },
+      command = M.bullets,
+    },
+  })
 end
 
 return M
