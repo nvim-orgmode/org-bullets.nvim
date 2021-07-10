@@ -1,22 +1,19 @@
 local M = {}
 
----@class BulletsConfig
----@field public show_current_line boolean
-local config = {
-  show_current_line = false,
-}
-
 local fn = vim.fn
 local api = vim.api
 
 local org_ns = api.nvim_create_namespace("org_bullets")
 local org_headline_hl = "OrgHeadlineLevel"
 
-local symbols = {
-  "◉",
-  "○",
-  "✸",
-  "✿",
+local symbols = { "◉", "○", "✸", "✿" }
+
+---@class BulletsConfig
+---@field public show_current_line boolean
+---@field public symbols string[] | function(symbols: string[]): string[]
+local config = {
+  show_current_line = false,
+  symbols = symbols,
 }
 
 ---@type table<integer,integer>
@@ -25,13 +22,21 @@ local marks = {}
 ---@type table
 local last_lnum = { mark = nil, lnum = nil }
 
----Check if the current line is the same as the last
----@param lnum integer
----@return table
-local line_changed = function(lnum)
-  return last_lnum and last_lnum.lnum ~= lnum
+---Merge a user config with the defaults
+---@param conf BulletsConfig
+local function set_config(conf)
+  if conf.symbols and type(conf.symbols) == "function" then
+    conf.symbols = conf.symbols(symbols) or symbols
+  end
+  config = vim.tbl_extend("keep", conf, config)
 end
 
+---Set an extmark (safely)
+---@param virt_text string[] a tuple of character and highlight
+---@param lnum integer
+---@param start_col integer
+---@param end_col integer
+---@param highlight string
 local function set_mark(virt_text, lnum, start_col, end_col, highlight)
   local ok, result = pcall(api.nvim_buf_set_extmark, 0, org_ns, lnum, start_col, {
     end_col = end_col,
@@ -50,13 +55,14 @@ end
 ---Set the a single line extmark
 ---@param lnum number
 ---@param line number
-local function set_line_mark(lnum, line)
+---@param conf BulletsConfig
+local function set_line_mark(lnum, line, conf)
   local match = fn.matchstrpos(line, [[^\*\{1,}\ze\s]])
   local str, start_col, end_col = match[1], match[2], match[3]
   if start_col > -1 and end_col > -1 then
     local level = #str
     local padding = level <= 0 and "" or string.rep(" ", level - 1)
-    local symbol = padding .. (symbols[level] or symbols[1]) .. " "
+    local symbol = padding .. (conf.symbols[level] or conf.symbols[1]) .. " "
     local highlight = org_headline_hl .. level
     set_mark({ symbol, highlight }, lnum, start_col, end_col, highlight)
   end
@@ -69,7 +75,7 @@ local function conceal_buffer()
   api.nvim_buf_clear_namespace(0, org_ns, 0, -1)
   local lines = api.nvim_buf_get_lines(0, 0, -1, false)
   for index, line in ipairs(lines) do
-    set_line_mark(index - 1, line)
+    set_line_mark(index - 1, line, config)
   end
 end
 
@@ -89,7 +95,7 @@ local function update_changed_lines(_, buf, __, firstline, ___, new_lastline)
     if id then
       api.nvim_buf_del_extmark(0, org_ns, id)
     end
-    set_line_mark(lnum, lines[index])
+    set_line_mark(lnum, lines[index], config)
     index = index + 1
   end
 end
@@ -106,7 +112,31 @@ local function apply_previous_extmark(lnum)
   set_mark(mark.virt_text[1], last_lnum.lnum, start_col, end_col, mark.hl_group)
 end
 
---- Initialise autocommands for the plugin
+local function toggle_line_visibility()
+  local pos = api.nvim_win_get_cursor(0)
+  local lnum = pos[1] - 1
+  local changed = last_lnum and last_lnum.lnum ~= lnum
+  if changed then
+    apply_previous_extmark(lnum)
+  end
+  -- order matters here, this should happen AFTER re-adding previous marks
+  -- also update the line number no matter what
+  local id = marks[lnum]
+  if not id then
+    return
+  end
+  local mark = api.nvim_buf_get_extmark_by_id(0, org_ns, id, { details = true })
+  api.nvim_buf_del_extmark(0, org_ns, id)
+  marks[lnum] = nil
+  if changed then
+    last_lnum = {
+      lnum = lnum,
+      mark = mark,
+    }
+  end
+end
+
+--- Initialise autocommands for the org buffer
 --- @param conf BulletsConfig
 local function setup_autocommands(conf)
   local commands = {}
@@ -114,35 +144,15 @@ local function setup_autocommands(conf)
     table.insert(commands, {
       events = { "CursorMoved" },
       targets = { "<buffer>" },
-      command = function()
-        local pos = api.nvim_win_get_cursor(0)
-        local lnum = pos[1] - 1
-        local changed = line_changed(lnum)
-        if changed then
-          apply_previous_extmark(lnum)
-        end
-        -- order matters here, this should happen AFTER re-adding previous marks
-        -- also update the line number no matter what
-        local id = marks[lnum]
-        if not id then
-          return
-        end
-        local mark = api.nvim_buf_get_extmark_by_id(0, org_ns, id, { details = true })
-        api.nvim_buf_del_extmark(0, org_ns, id)
-        marks[lnum] = nil
-        if changed then
-          last_lnum = {
-            lnum = lnum,
-            mark = mark,
-          }
-        end
-      end,
+      command = toggle_line_visibility,
     })
   end
   require("org-bullets.utils").augroup("OrgBullets", commands)
 end
 
-function M.bullets()
+--- Apply plugin to the current org buffer. This is called from a ftplugin
+--- so it applies to any org buffers opened
+function M.__init()
   conceal_buffer()
   --- TODO: on_lines is not triggered for undo events??
   api.nvim_buf_attach(0, true, { on_lines = update_changed_lines, on_reload = conceal_buffer })
@@ -150,16 +160,9 @@ function M.bullets()
 end
 
 ---Save the user config and initialise the plugin
----@param user_config BulletsConfig
-function M.setup(user_config)
-  config = user_config
-  require("org-bullets.utils").augroup("OrgBulletsInit", {
-    {
-      events = { "Filetype" },
-      targets = { "org" },
-      command = M.bullets,
-    },
-  })
+---@param conf BulletsConfig
+function M.setup(conf)
+  set_config(conf or {})
 end
 
 return M
