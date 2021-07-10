@@ -24,7 +24,14 @@ _see below for a simpler conceal-based solution_
 
 ```lua
 use {"akinsho/org-bullets.nvim", config = function()
-  require("org-bullets").setup {}
+  require("org-bullets").setup {
+    symbols = { "◉", "○", "✸", "✿" }
+    -- or a function that receives the defaults and returns a list
+    symbols = function(default_list)
+      table.insert(default_list, "♥")
+      return default_list
+    end
+  }
 end}
 
 ```
@@ -34,10 +41,10 @@ end}
 A simpler conceal based alternative is:
 
 ```vim
-syntax match OrgHeadlineStar1 /^\*\s/me=e-1 conceal cchar=◉ containedin=OrgHeadlineLevel1 contained
-syntax match OrgHeadlineStar2 /^\*\{2}\s/me=e-1 conceal cchar=○ containedin=OrgHeadlineLevel2 contained
-syntax match OrgHeadlineStar3 /^\*\{3}\s/me=e-1 conceal cchar=✸ containedin=OrgHeadlineLevel3 contained
-syntax match OrgHeadlineStar4 /^\*{4}s/me=e-1 conceal cchar=✿ containedin=OrgHeadlineLevel4 contained
+syntax match OrgHeadlineStar1 /^\*\ze\s/me=e-1 conceal cchar=◉ containedin=OrgHeadlineLevel1 contained
+syntax match OrgHeadlineStar2 /^\*\{2}\ze\s/me=e-1 conceal cchar=○ containedin=OrgHeadlineLevel2 contained
+syntax match OrgHeadlineStar3 /^\*\{3}\ze\s/me=e-1 conceal cchar=✸ containedin=OrgHeadlineLevel3 contained
+syntax match OrgHeadlineStar4 /^\*{4}\ze\s/me=e-1 conceal cchar=✿ containedin=OrgHeadlineLevel4 contained
 ```
 
 ## TODO:
