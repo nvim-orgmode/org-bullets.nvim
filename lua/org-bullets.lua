@@ -85,9 +85,15 @@ end
 ---@param buf integer 'the buffer number'
 ---@param __ integer 'the changed tick'
 ---@param firstline number 'the first line in the changed range'
----@param ___ number 'the last line'
+---@param lastline number 'the previous last line'
 ---@param new_lastline number 'the updated last line'
-local function update_changed_lines(_, buf, __, firstline, ___, new_lastline)
+---@param byte_count integer
+local function update_changed_lines(_, buf, __, firstline, lastline, new_lastline, byte_count)
+  if firstline == lastline and lastline == new_lastline and byte_count == 0 then
+    -- on_lines can be called twice for undo events; ignore the second
+    -- call which indicates no changes.
+    return
+  end
   local lines = vim.api.nvim_buf_get_lines(buf, firstline, new_lastline, true)
   local index = 1
   for lnum = firstline, new_lastline - 1 do
@@ -139,7 +145,9 @@ end
 --- Initialise autocommands for the org buffer
 --- @param conf BulletsConfig
 local function setup_autocommands(conf)
-  local commands = {}
+  local commands = {
+    { events = { "BufEnter" }, targets = { "<buffer>" }, command = conceal_buffer },
+  }
   if conf and conf.show_current_line then
     table.insert(commands, {
       events = { "CursorMoved" },
@@ -154,8 +162,12 @@ end
 --- so it applies to any org buffers opened
 function M.__init()
   conceal_buffer()
-  --- TODO: on_lines is not triggered for undo events??
-  api.nvim_buf_attach(0, true, { on_lines = update_changed_lines, on_reload = conceal_buffer })
+  local curbuf = api.nvim_get_current_buf()
+  api.nvim_buf_attach(curbuf, false, {
+    -- TODO: on_lines is not triggered for undo events??
+    on_lines = update_changed_lines,
+    on_reload = conceal_buffer,
+  })
   setup_autocommands(config)
 end
 
