@@ -145,8 +145,13 @@ end
 --- Initialise autocommands for the org buffer
 --- @param conf BulletsConfig
 local function setup_autocommands(conf)
+  local utils = require("org-bullets.utils")
   local commands = {
-    { events = { "BufEnter" }, targets = { "<buffer>" }, command = conceal_buffer },
+    {
+      events = { "BufRead", "TextChanged", "TextChangedI", "TextChangedP" },
+      targets = { "<buffer>" },
+      command = utils.throttle(50, conceal_buffer),
+    },
   }
   if conf and conf.show_current_line then
     table.insert(commands, {
@@ -155,19 +160,13 @@ local function setup_autocommands(conf)
       command = toggle_line_visibility,
     })
   end
-  require("org-bullets.utils").augroup("OrgBullets", commands)
+  utils.augroup("OrgBullets", commands)
 end
 
 --- Apply plugin to the current org buffer. This is called from a ftplugin
 --- so it applies to any org buffers opened
 function M.__init()
   conceal_buffer()
-  local curbuf = api.nvim_get_current_buf()
-  api.nvim_buf_attach(curbuf, false, {
-    -- TODO: on_lines is not triggered for undo events??
-    on_lines = update_changed_lines,
-    on_reload = conceal_buffer,
-  })
   setup_autocommands(config)
 end
 
