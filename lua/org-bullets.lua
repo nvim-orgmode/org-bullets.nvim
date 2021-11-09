@@ -11,9 +11,11 @@ local symbols = { "◉", "○", "✸", "✿" }
 ---@class BulletsConfig
 ---@field public show_current_line boolean
 ---@field public symbols string[] | function(symbols: string[]): string[]
+---@field public indent boolean
 local config = {
   show_current_line = false,
   symbols = symbols,
+  indent = true,
 }
 
 ---@type table<integer,integer>
@@ -52,6 +54,18 @@ local function set_mark(virt_text, lnum, start_col, end_col, highlight)
   end
 end
 
+---Add padding to the given symbol
+---@param symbol string
+---@param padding_spaces number
+---@param padding_in_front boolean
+local function add_symbol_padding(symbol, padding_spaces, padding_in_front)
+  if padding_in_front then
+    return string.rep(" ", padding_spaces - 1) .. symbol
+  else
+    return symbol .. string.rep(" ", padding_spaces)
+  end
+end
+
 ---Set the a single line extmark
 ---@param lnum number
 ---@param line number
@@ -61,8 +75,11 @@ local function set_line_mark(lnum, line, conf)
   local str, start_col, end_col = match[1], match[2], match[3]
   if start_col > -1 and end_col > -1 then
     local level = #str
-    local padding = level <= 0 and "" or string.rep(" ", level - 1)
-    local symbol = padding .. (conf.symbols[level] or conf.symbols[1]) .. " "
+    local symbol = add_symbol_padding(
+      (conf.symbols[level] or conf.symbols[1]),
+      (level <= 0 and 0 or level),
+      conf.indent
+    )
     local highlight = org_headline_hl .. level
     set_mark({ symbol, highlight }, lnum, start_col, end_col, highlight)
   end
