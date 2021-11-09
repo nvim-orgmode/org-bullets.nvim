@@ -66,14 +66,13 @@ local function add_symbol_padding(symbol, padding_spaces, padding_in_front)
   end
 end
 
----Set the a single line extmark
----@param lnum number
----@param line number
+---Sets of pairs {pattern = handler}
+---handler
+---@param str
 ---@param conf BulletsConfig
-local function set_line_mark(lnum, line, conf)
-  local match = fn.matchstrpos(line, [[^\*\{1,}\ze\s]])
-  local str, start_col, end_col = match[1], match[2], match[3]
-  if start_col > -1 and end_col > -1 then
+---@return {symbol, highlight_group}
+local markers = {
+  ['^\\*\\{1,}\\ze\\s'] = function(str, conf)
     local level = #str
     local symbol = add_symbol_padding(
       (conf.symbols[level] or conf.symbols[1]),
@@ -81,7 +80,36 @@ local function set_line_mark(lnum, line, conf)
       conf.indent
     )
     local highlight = org_headline_hl .. level
-    set_mark({ symbol, highlight }, lnum, start_col, end_col, highlight)
+    return { symbol, highlight }
+  end,
+  ['^\\-\\{5,}\\ze\\s*'] = function()
+    return { string.rep("━", vim.o.columns), "OrgDone" }
+  end,
+  ['^\\s*\\-\\s\\[\\zs[x-]\\ze\\]'] = function(str)
+    local symbol = (str == "-") and "" or "✓"
+    return { symbol, "SpecialChar" }
+  end,
+  ['^\\s*\\-\\s'] = function(str)
+    local symbol = add_symbol_padding(
+      "•",
+      (#str - 1),
+      true
+    )
+    return { symbol, "OrgDone" }
+  end
+}
+
+---Set the a single line extmark
+---@param lnum number
+---@param line number
+---@param conf BulletsConfig
+local function set_line_mark(lnum, line, conf)
+  for pattern, handler in pairs(markers) do
+    local match = fn.matchstrpos(line, pattern)
+    local str, start_col, end_col = match[1], match[2], match[3]
+    if start_col > -1 and end_col > -1 then
+      set_mark(handler(str, conf), lnum, start_col, end_col, highlight)
+    end
   end
 end
 
