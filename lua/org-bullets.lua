@@ -54,18 +54,23 @@ local function set_mark(virt_text, lnum, start_col, end_col, highlight)
   end
 end
 
+---Add padding to the given symbol
+---@param symbol string
+---@param padding_spaces number
+---@param padding_in_front boolean
+local function add_symbol_padding(symbol, padding_spaces, padding_in_front)
+  if padding_in_front then
+    return string.rep(" ", padding_spaces - 1) .. symbol
+  else
+    return symbol .. string.rep(" ", padding_spaces)
+  end
+end
+
 ---Set the a single line extmark
 ---@param lnum number
 ---@param line number
 ---@param conf BulletsConfig
 local function set_line_mark(lnum, line, conf)
-  local function add_symbol_padding(symbol, padding_spaces, padding_in_front)
-    if padding_in_front then
-      return string.rep(" ", padding_spaces - 1) .. symbol
-    else
-      return symbol .. string.rep(" ", padding_spaces)
-    end
-  end
   local match = fn.matchstrpos(line, [[^\*\{1,}\ze\s]])
   local str, start_col, end_col = match[1], match[2], match[3]
   if start_col > -1 and end_col > -1 then
@@ -100,7 +105,7 @@ end
 ---@param lastline number 'the previous last line'
 ---@param new_lastline number 'the updated last line'
 ---@param byte_count integer
-local function update_changed_lines(_, buf, _, firstline, lastline, new_lastline, byte_count)
+local function update_changed_lines(_, buf, __, firstline, lastline, new_lastline, byte_count)
   if firstline == lastline and lastline == new_lastline and byte_count == 0 then
     -- on_lines can be called twice for undo events; ignore the second
     -- call which indicates no changes.
