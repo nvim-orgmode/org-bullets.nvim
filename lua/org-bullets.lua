@@ -7,6 +7,11 @@ local org_ns = api.nvim_create_namespace("org_bullets")
 local org_headline_hl = "OrgHeadlineLevel"
 
 local symbols = { "◉", "○", "✸", "✿" }
+local list_groups = {
+  ['-'] = 'OrgHeadlineLevel1',
+  ['+'] = 'OrgHeadlineLevel2',
+  ['*'] = 'OrgHeadlineLevel3'
+}
 
 ---@class BulletsConfig
 ---@field public show_current_line boolean
@@ -72,6 +77,7 @@ end
 ---@param conf BulletsConfig
 ---@return {symbol, highlight_group}
 local markers = {
+  -- Headers
   ['^\\*\\{1,}\\ze\\s'] = function(str, conf)
     local level = #str
     local symbol = add_symbol_padding(
@@ -82,20 +88,18 @@ local markers = {
     local highlight = org_headline_hl .. level
     return { symbol, highlight }
   end,
-  ['^\\-\\{5,}\\ze\\s*'] = function()
-    return { string.rep("━", vim.o.columns), "OrgDone" }
+  -- Checkboxes [x]
+  ['^\\s*\\-\\s\\[\\zsx\\ze\\]'] = function(str)
+    return { "✓", "OrgDone" }
   end,
-  ['^\\s*\\-\\s\\[\\zs[x-]\\ze\\]'] = function(str)
-    local symbol = (str == "-") and "" or "✓"
-    return { symbol, "SpecialChar" }
-  end,
-  ['^\\s*\\-\\s'] = function(str)
+  -- List bullets *,+,-
+  ['^\\s*[-+*]\\s'] = function(str)
     local symbol = add_symbol_padding(
       "•",
       (#str - 1),
       true
     )
-    return { symbol, "OrgDone" }
+    return { symbol,  list_groups[vim.trim(str)] }
   end
 }
 
