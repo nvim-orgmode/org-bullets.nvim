@@ -7,6 +7,11 @@ local org_ns = api.nvim_create_namespace("org_bullets")
 local org_headline_hl = "OrgHeadlineLevel"
 
 local symbols = { "◉", "○", "✸", "✿" }
+local list_groups = {
+  ['-'] = 'OrgHeadlineLevel1',
+  ['+'] = 'OrgHeadlineLevel2',
+  ['*'] = 'OrgHeadlineLevel3'
+}
 
 ---@class BulletsConfig
 ---@field public show_current_line boolean
@@ -66,14 +71,14 @@ local function add_symbol_padding(symbol, padding_spaces, padding_in_front)
   end
 end
 
----Set the a single line extmark
----@param lnum number
----@param line number
+---Sets of pairs {pattern = handler}
+---handler
+---@param str
 ---@param conf BulletsConfig
-local function set_line_mark(lnum, line, conf)
-  local match = fn.matchstrpos(line, [[^\*\{1,}\ze\s]])
-  local str, start_col, end_col = match[1], match[2], match[3]
-  if start_col > -1 and end_col > -1 then
+---@return {symbol, highlight_group}
+local markers = {
+  -- Headers
+  ['^\\*\\{1,}\\ze\\s'] = function(str, conf)
     local level = #str
     local symbol = add_symbol_padding(
       (conf.symbols[level] or conf.symbols[1]),
@@ -81,7 +86,34 @@ local function set_line_mark(lnum, line, conf)
       conf.indent
     )
     local highlight = org_headline_hl .. level
-    set_mark({ symbol, highlight }, lnum, start_col, end_col, highlight)
+    return { symbol, highlight }
+  end,
+  -- Checkboxes [x]
+  ['^\\s*\\-\\s\\[\\zsx\\ze\\]'] = function(str)
+    return { "✓", "OrgDone" }
+  end,
+  -- List bullets *,+,-
+  ['^\\s*[-+*]\\s'] = function(str)
+    local symbol = add_symbol_padding(
+      "•",
+      (#str - 1),
+      true
+    )
+    return { symbol,  list_groups[vim.trim(str)] }
+  end
+}
+
+---Set the a single line extmark
+---@param lnum number
+---@param line number
+---@param conf BulletsConfig
+local function set_line_mark(lnum, line, conf)
+  for pattern, handler in pairs(markers) do
+    local match = fn.matchstrpos(line, pattern)
+    local str, start_col, end_col = match[1], match[2], match[3]
+    if start_col > -1 and end_col > -1 then
+      set_mark(handler(str, conf), lnum, start_col, end_col, highlight)
+    end
   end
 end
 
