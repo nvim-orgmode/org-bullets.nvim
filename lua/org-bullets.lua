@@ -73,9 +73,9 @@ end
 
 ---Sets of pairs {pattern = handler}
 ---handler
----@param str
+---@param str string
 ---@param conf BulletsConfig
----@return {symbol, highlight_group}
+---@return string symbol, string highlight_group
 local markers = {
   -- Headers
   ['^\\*\\{1,}\\ze\\s'] = function(str, conf)
@@ -89,7 +89,7 @@ local markers = {
     return { symbol, highlight }
   end,
   -- Checkboxes [x]
-  ['^\\s*\\-\\s\\[\\zsx\\ze\\]'] = function(str)
+  ['^\\s*\\-\\s\\[\\zsx\\ze\\]'] = function(_)
     return { "✓", "OrgDone" }
   end,
   -- List bullets *,+,-
@@ -112,7 +112,7 @@ local function set_line_mark(lnum, line, conf)
     local match = fn.matchstrpos(line, pattern)
     local str, start_col, end_col = match[1], match[2], match[3]
     if start_col > -1 and end_col > -1 then
-      set_mark(handler(str, conf), lnum, start_col, end_col, highlight)
+      set_mark(handler(str, conf), lnum, start_col, end_col)
     end
   end
 end
