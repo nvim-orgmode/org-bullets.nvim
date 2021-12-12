@@ -25,12 +25,22 @@ _see below for a simpler conceal-based solution_
 ```lua
 use {"akinsho/org-bullets.nvim", config = function()
   require("org-bullets").setup {
+    -- Symbols for different headline bullet levels
     symbols = { "◉", "○", "✸", "✿" }
-    -- or a function that receives the defaults and returns a list
+    -- Can also be overridden with a function to append to the above defaults
     symbols = function(default_list)
       table.insert(default_list, "♥")
       return default_list
-    end
+    end,
+    -- Show the literal text of the current line, similar to 'concealcursor'
+    show_current_line = false,
+    -- Whether or not to indent bullets
+    indent = true,
+    -- Characters that will match for bullets, can also be a function similar to 'symbols'
+    -- but is passed a string instead of a table
+    bullet_chars = "-+*",
+    -- The symbol for the above bullets
+    bullet_symbol = "•",
   }
 end}
 

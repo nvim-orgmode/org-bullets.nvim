@@ -7,10 +7,11 @@ local org_ns = api.nvim_create_namespace("org_bullets")
 local org_headline_hl = "OrgHeadlineLevel"
 
 local symbols = { "◉", "○", "✸", "✿" }
+local bullet_chars = "-+*"
 local list_groups = {
-  ['-'] = 'OrgHeadlineLevel1',
-  ['+'] = 'OrgHeadlineLevel2',
-  ['*'] = 'OrgHeadlineLevel3'
+  ["-"] = "OrgHeadlineLevel1",
+  ["+"] = "OrgHeadlineLevel2",
+  ["*"] = "OrgHeadlineLevel3",
 }
 
 ---@class BulletsConfig
@@ -21,10 +22,19 @@ local config = {
   show_current_line = false,
   symbols = symbols,
   indent = true,
+  bullet_chars = bullet_chars,
+  bullet_symbol = "•",
 }
 
 ---@type table<integer,integer>
 local marks = {}
+
+---Sets of pairs {pattern = handler}
+---handler
+---@param str string
+---@param conf BulletsConfig
+---@return string symbol, string highlight_group
+local markers = {}
 
 ---@type table
 local last_lnum = { mark = nil, lnum = nil }
@@ -35,6 +45,11 @@ local function set_config(conf)
   if conf.symbols and type(conf.symbols) == "function" then
     conf.symbols = conf.symbols(symbols) or symbols
   end
+
+  if conf.bullet_chars and type(conf.bullet_chars) == "function" then
+    conf.bullet_chars = conf.bullet_chars(bullet_chars) or bullet_chars
+  end
+
   config = vim.tbl_extend("keep", conf, config)
 end
 
@@ -70,38 +85,6 @@ local function add_symbol_padding(symbol, padding_spaces, padding_in_front)
     return symbol .. string.rep(" ", padding_spaces)
   end
 end
-
----Sets of pairs {pattern = handler}
----handler
----@param str string
----@param conf BulletsConfig
----@return string symbol, string highlight_group
-local markers = {
-  -- Headers
-  ['^\\*\\{1,}\\ze\\s'] = function(str, conf)
-    local level = #str
-    local symbol = add_symbol_padding(
-      (conf.symbols[level] or conf.symbols[1]),
-      (level <= 0 and 0 or level),
-      conf.indent
-    )
-    local highlight = org_headline_hl .. level
-    return { symbol, highlight }
-  end,
-  -- Checkboxes [x]
-  ['^\\s*\\-\\s\\[\\zsx\\ze\\]'] = function(_)
-    return { "✓", "OrgDone" }
-  end,
-  -- List bullets *,+,-
-  ['^\\s*[-+*]\\s'] = function(str)
-    local symbol = add_symbol_padding(
-      "•",
-      (#str - 1),
-      true
-    )
-    return { symbol,  list_groups[vim.trim(str)] }
-  end
-}
 
 ---Set the a single line extmark
 ---@param lnum number
@@ -212,6 +195,32 @@ local function setup_autocommands(conf)
   utils.augroup("OrgBullets", commands)
 end
 
+--- Setup markers used for matching various "bullet symbols" on lines
+local function setup_markers()
+  markers = {
+    -- Headers
+    ["^\\*\\{1,}\\ze\\s"] = function(str, conf)
+      local level = #str
+      local symbol = add_symbol_padding(
+        (conf.symbols[level] or conf.symbols[1]),
+        (level <= 0 and 0 or level),
+        conf.indent
+      )
+      local highlight = org_headline_hl .. level
+      return { symbol, highlight }
+    end,
+    -- Checkboxes [x]
+    ["^\\s*\\-\\s\\[\\zsx\\ze\\]"] = function(_)
+      return { "✓", "OrgDone" }
+    end,
+    -- List bullets *,+,- (or as configured by the user)
+    ["^\\s*[" .. config.bullet_chars .. "]\\s"] = function(str)
+      local symbol = add_symbol_padding(config.bullet_symbol, (#str - 1), true)
+      return { symbol, list_groups[vim.trim(str)] }
+    end,
+  }
+end
+
 --- Apply plugin to the current org buffer. This is called from a ftplugin
 --- so it applies to any org buffers opened
 function M.__init()
@@ -223,6 +232,7 @@ end
 ---@param conf BulletsConfig
 function M.setup(conf)
   set_config(conf or {})
+  setup_markers()
 end
 
 return M
