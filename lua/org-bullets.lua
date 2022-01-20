@@ -89,7 +89,7 @@ local markers = {
     return { symbol, highlight }
   end,
   -- Checkboxes [x]
-  ['^\\s*\\-\\s\\[\\zsx\\ze\\]'] = function(_)
+  ['^\\s*\\-\\s\\[\\zs[Xx]\\ze\\]'] = function(_)
     return { "✓", "OrgDone" }
   end,
   -- List bullets *,+,-
