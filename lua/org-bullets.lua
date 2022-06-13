@@ -175,12 +175,21 @@ local function get_mark_positions(bufnr, start_row, end_row)
   return positions
 end
 
+local ticks = {}
 ---Save the user config and initialise the plugin
 ---@param conf BulletsConfig
 function M.setup(conf)
   conf = conf or {}
   set_config(conf)
   api.nvim_set_decoration_provider(NAMESPACE, {
+    on_start = function(_, tick)
+      local buf = api.nvim_get_current_buf()
+      if ticks[buf] == tick then
+        return false
+      end
+      ticks[buf] = tick
+      return true
+    end,
     on_win = function(_, _, bufnr, topline, botline)
       if vim.bo[bufnr].filetype ~= "org" then
         return false
