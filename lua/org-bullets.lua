@@ -1,6 +1,5 @@
 local M = {}
 
-local fn = vim.fn
 local api = vim.api
 
 local NAMESPACE = api.nvim_create_namespace("org-bullets")
@@ -59,22 +58,23 @@ local markers = {
       conf.indent
     )
     local highlight = org_headline_hl .. level
-    return { symbol, highlight }
+    return { { symbol, highlight } }
   end,
   -- Checkboxes [x]
-  checkboxes = function(_)
-    return { "✓", "OrgDone" }
+  expr = function(str)
+    str = str:find("x") ~= nil and "✓" or "˟"
+    return { { "[", "NonText" }, { str, "OrgDone" }, { "]", "NonText" } }
   end,
   -- List bullets *,+,-
   bullet = function(str)
     local symbol = add_symbol_padding("•", (#str - 1), true)
-    return { symbol, list_groups[vim.trim(str)] }
+    return { { symbol, list_groups[vim.trim(str)] } }
   end,
 }
 
 ---Set an extmark (safely)
 ---@param bufnr number
----@param virt_text string[] a tuple of character and highlight
+---@param virt_text string[][] a tuple of character and highlight
 ---@param lnum integer
 ---@param start_col integer
 ---@param end_col integer
@@ -83,7 +83,7 @@ local function set_mark(bufnr, virt_text, lnum, start_col, end_col, highlight)
   local ok, result = pcall(api.nvim_buf_set_extmark, bufnr, NAMESPACE, lnum, start_col, {
     end_col = end_col,
     hl_group = highlight,
-    virt_text = { virt_text },
+    virt_text = virt_text,
     virt_text_pos = "overlay",
     hl_mode = "combine",
     ephemeral = true,
@@ -108,6 +108,8 @@ local function get_ts_positions(bufnr, start_row, end_row, root)
     [[
       (stars) @stars
       (bullet) @bullet
+      ((expr) @_item
+        (#lua-match? @_item "(%[x%])")) @checkbox
     ]]
   )
   for _, node, metadata in query:iter_captures(root, bufnr, start_row, end_row) do
