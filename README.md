@@ -5,8 +5,6 @@ It replaces the asterisks in org syntax with unicode characters.
 
 This plugin is an extension intended for use with [orgmode.nvim](https://github.com/kristijanhusak/orgmode.nvim)
 
-**status**: experimental
-
 This plugin works by using neovim `extmarks`, rather than `conceal` for a few reasons.
 
 - conceal can only have one global highlight see `:help hl-Conceal`.
@@ -18,7 +16,7 @@ _see below for a simpler conceal-based solution_
 
 ## Pre-requisites
 
-- neovim 0.5+
+- neovim 0.7+
 
 ## Installation
 
