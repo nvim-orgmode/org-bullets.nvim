@@ -23,6 +23,7 @@ _see below for a simpler conceal-based solution_
 ```lua
 use {"akinsho/org-bullets.nvim", config = function()
   require("org-bullets").setup {
+    concealcursor = false, -- If false then when the cursor is on a line underlying characters are visible
     symbols = { "◉", "○", "✸", "✿" }
     -- or a function that receives the defaults and returns a list
     symbols = function(default_list)

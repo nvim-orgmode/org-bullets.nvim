@@ -19,6 +19,10 @@ local defaults = {
   show_current_line = false,
   symbols = { "◉", "○", "✸", "✿" },
   indent = true,
+  -- TODO: should this read from the user's conceal settings?
+  -- maybe but that option is a little complex and will make
+  -- the implementation more convoluted
+  concealcursor = false,
 }
 
 local config = {}
@@ -146,7 +150,14 @@ local function set_position_marks(bufnr, positions, conf)
     local start_col = position.start_col
     local end_col = position.end_col
     local handler = markers[position.type]
-    if start_col > -1 and end_col > -1 and handler then
+
+    -- Don't add conceal on the current cursor line if the user doesn't want it
+    local is_concealed = true
+    if not conf.concealcursor then
+      local cursor_row = api.nvim_win_get_cursor(0)[1]
+      is_concealed = start_row ~= (cursor_row - 1)
+    end
+    if is_concealed and start_col > -1 and end_col > -1 and handler then
       set_mark(bufnr, handler(str, conf), start_row, start_col, end_col)
     end
   end
