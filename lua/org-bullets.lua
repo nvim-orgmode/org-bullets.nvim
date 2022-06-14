@@ -3,12 +3,12 @@ local M = {}
 local api = vim.api
 
 local NAMESPACE = api.nvim_create_namespace("org-bullets")
-local org_headline_hl = "OrgHeadlineLevel"
+local org_headline_hl = "OrgTSHeadlineLevel"
 
 local list_groups = {
-  ["-"] = "OrgHeadlineLevel1",
-  ["+"] = "OrgHeadlineLevel2",
-  ["*"] = "OrgHeadlineLevel3",
+  ["-"] = "OrgTSHeadlineLevel1",
+  ["+"] = "OrgTSHeadlineLevel2",
+  ["*"] = "OrgTSHeadlineLevel3",
 }
 
 ---@class BulletsConfig
@@ -20,10 +20,11 @@ local defaults = {
   symbols = {
     headlines = { "◉", "○", "✸", "✿" },
     checkboxes = {
-      cancelled = { "", "OrgCancelled" },
+      half = { "", "OrgCancelled" },
       done = { "✓", "OrgDone" },
-      todo = { "˟", "OrgTODO" },
+      undone = { "˟", "OrgTSCheckbox" },
     },
+    bullet = "•",
   },
   indent = true,
   -- TODO: should this read from the user's conceal settings?
@@ -72,20 +73,22 @@ local markers = {
   end,
   -- Checkboxes [x]
   expr = function(str, conf)
-    local text = { str, "OrgTODO" }
     local symbols = conf.symbols.checkboxes
     if str:match("X") then
-      text = symbols.done
-    elseif str:match("%-") then
-      text = symbols.cancelled
-    else
-      text = symbols.todo
+      return { { "[", "OrgTSCheckboxChecked" }, symbols.done, { "]", "OrgTSCheckboxChecked" } }
+    elseif str:match("-") then
+      return {
+        { "[", "OrgTSCheckboxHalfChecked" },
+        symbols.half,
+        { "]", "OrgTSCheckboxHalfChecked" },
+      }
+      --[[ elseif str:match(" ") then
+      return { { "[", "OrgTSCheckbox" }, symbols.undone, { "]", "OrgTSCheckbox" } } ]]
     end
-    return { { "[", "NonText" }, text, { "]", "NonText" } }
   end,
   -- List bullets *,+,-
-  bullet = function(str)
-    local symbol = add_symbol_padding("•", (#str - 1), true)
+  bullet = function(str, conf)
+    local symbol = add_symbol_padding(conf.symbols.bullet, (#str - 1), true)
     return { { symbol, list_groups[vim.trim(str)] } }
   end,
 }
@@ -128,8 +131,8 @@ local function get_ts_positions(bufnr, start_row, end_row, root)
     [[
       (stars) @stars
       (bullet) @bullet
-      ((expr) @_item (#eq? @_item "[-]")) @cancelled
       ((expr) @_done (#eq? @_done "[X]")) @done
+      ((expr) @_half (#eq? @_half "[-]")) @half
     ]]
   )
   for _, node, metadata in query:iter_captures(root, bufnr, start_row, end_row) do
