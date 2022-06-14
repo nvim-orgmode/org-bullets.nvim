@@ -16,6 +16,7 @@ _see below for a simpler conceal-based solution_
 
 ## Pre-requisites
 
+- **This plugin requires the use of treesitter with `tree-sitter-org` mode installed**
 - neovim 0.7+
 
 ## Installation
