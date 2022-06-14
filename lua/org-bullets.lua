@@ -72,14 +72,12 @@ local markers = {
   end,
   -- Checkboxes [x]
   expr = function(str, conf)
-    local text = { str, "OrgTODO" }
     local symbols = conf.symbols.checkboxes
-    if str:match("X") then
+    local text = symbols.todo
+    if str:match("[Xx]") then
       text = symbols.done
-    elseif str:match("%-") then
+    elseif str:match("-") then
       text = symbols.cancelled
-    else
-      text = symbols.todo
     end
     return { { "[", "NonText" }, text, { "]", "NonText" } }
   end,
@@ -128,8 +126,15 @@ local function get_ts_positions(bufnr, start_row, end_row, root)
     [[
       (stars) @stars
       (bullet) @bullet
-      ((expr) @_item (#eq? @_item "[-]")) @cancelled
-      ((expr) @_done (#eq? @_done "[X]")) @done
+
+      (listitem . (bullet) . (paragraph .
+        (expr "[" "str" @_org_checkbox_check "]") @_org_checkbox_done
+        (#match? @_org_checkbox_done "^\\[[xX]\\]$"))) @org_checkbox_done
+
+      (listitem . (bullet) . (paragraph .
+        ((expr "[" "-" @_org_check_in_progress "]") @_org_checkbox
+        (#eq? @_org_checkbox "[-]")) @org_checkbox_cancelled))
+
     ]]
   )
   for _, node, metadata in query:iter_captures(root, bufnr, start_row, end_row) do
