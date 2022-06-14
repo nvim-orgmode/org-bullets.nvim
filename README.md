@@ -26,18 +26,19 @@ use {"akinsho/org-bullets.nvim", config = function()
   require("org-bullets").setup {
     concealcursor = false, -- If false then when the cursor is on a line underlying characters are visible
     symbols = {
+      -- headlines can be a list
       headlines = { "◉", "○", "✸", "✿" },
+      -- or a function that receives the defaults and returns a list
+      symbols = function(default_list)
+        table.insert(default_list, "♥")
+        return default_list
+      end,
       checkboxes = {
         cancelled = { "", "OrgCancelled" },
         done = { "✓", "OrgDone" },
         todo = { "˟", "OrgTODO" },
       },
     }
-    -- or a function that receives the defaults and returns a list
-    symbols = function(default_list)
-      table.insert(default_list, "♥")
-      return default_list
-    end
   }
 end}
 
