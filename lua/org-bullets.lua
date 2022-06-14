@@ -17,7 +17,14 @@ local list_groups = {
 ---@field public indent boolean
 local defaults = {
   show_current_line = false,
-  symbols = { "◉", "○", "✸", "✿" },
+  symbols = {
+    headlines = { "◉", "○", "✸", "✿" },
+    checkboxes = {
+      cancelled = { "", "OrgCancelled" },
+      done = { "✓", "OrgDone" },
+      todo = { "˟", "OrgTODO" },
+    },
+  },
   indent = true,
   -- TODO: should this read from the user's conceal settings?
   -- maybe but that option is a little complex and will make
@@ -30,8 +37,10 @@ local config = {}
 ---Merge a user config with the defaults
 ---@param user_config BulletsConfig
 local function set_config(user_config)
-  if user_config.symbols and type(user_config.symbols) == "function" then
-    user_config.symbols = user_config.symbols(defaults.symbols) or defaults.symbols
+  local headlines = vim.tbl_get(user_config, "symbols", "headlines")
+  local default_headlines = defaults.symbols.headlines
+  if headlines and type(headlines) == "function" then
+    user_config.symbols.headlines = user_config.symbols(default_headlines) or default_headlines
   end
   config = vim.tbl_deep_extend("keep", user_config, defaults)
 end
@@ -55,19 +64,24 @@ end
 ---@return string symbol, string highlight_group
 local markers = {
   stars = function(str, conf)
-    local level = #str
-    local symbol = add_symbol_padding(
-      (conf.symbols[level] or conf.symbols[1]),
-      (level <= 0 and 0 or level),
-      conf.indent
-    )
+    local level = #str <= 0 and 0 or #str
+    local symbols = conf.symbols.headlines
+    local symbol = add_symbol_padding((symbols[level] or conf.symbols[1]), level, conf.indent)
     local highlight = org_headline_hl .. level
     return { { symbol, highlight } }
   end,
   -- Checkboxes [x]
-  expr = function(str)
-    str = str:find("x") ~= nil and "✓" or "˟"
-    return { { "[", "NonText" }, { str, "OrgDone" }, { "]", "NonText" } }
+  expr = function(str, conf)
+    local text = { str, "OrgTODO" }
+    local symbols = conf.symbols.checkboxes
+    if str:match("X") then
+      text = symbols.done
+    elseif str:match("%-") then
+      text = symbols.cancelled
+    else
+      text = symbols.todo
+    end
+    return { { "[", "NonText" }, text, { "]", "NonText" } }
   end,
   -- List bullets *,+,-
   bullet = function(str)
@@ -107,13 +121,15 @@ end
 ---@return Position[]
 local function get_ts_positions(bufnr, start_row, end_row, root)
   local positions = {}
+  -- TODO: This query does not work because the grammar recognises [ ] as three expressions not one
+  -- (((expr) @_todo (#eq? @_todo "[ ]")) @todo)
   local query = vim.treesitter.parse_query(
     "org",
     [[
       (stars) @stars
       (bullet) @bullet
-      ((expr) @_item
-        (#lua-match? @_item "(%[x%])")) @checkbox
+      ((expr) @_item (#eq? @_item "[-]")) @cancelled
+      ((expr) @_done (#eq? @_done "[X]")) @done
     ]]
   )
   for _, node, metadata in query:iter_captures(root, bufnr, start_row, end_row) do
