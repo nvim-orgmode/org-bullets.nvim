@@ -63,6 +63,8 @@ end
 ---@param conf BulletsConfig
 ---@return string symbol, string highlight_group
 local markers = {
+  -- FIXME relying on the TS node types as keys for each marker is brittle
+  -- these should be changed to distinct constants
   stars = function(str, conf)
     local level = #str <= 0 and 0 or #str
     local symbols = conf.symbols.headlines
@@ -111,6 +113,51 @@ local function set_mark(bufnr, virt_text, lnum, start_col, end_col, highlight)
   end
 end
 
+--- Create a position object
+---@param bufnr number
+---@param name string
+---@param node userdata
+---@return Position
+local function create_position(bufnr, name, node)
+  local type = node:type()
+  local row1, col1, row2, col2 = node:range()
+  return {
+    name = name,
+    type = type,
+    item = vim.treesitter.get_node_text(node, bufnr),
+    start_row = row1,
+    start_col = col1,
+    end_row = row2,
+    end_col = col2,
+  }
+end
+
+--- A workaround for matching an empty checkbox since it is not returned as a single node
+---@param bufnr number
+---@param name string
+---@param match table
+---@param query table
+---@param position Position
+---@param positions Position[]
+local function add_empty_checkbox(bufnr, name, match, query, position, positions)
+  if name:match("left") then
+    return
+  end
+  local next_id, next_match = next(match)
+  local next_name = query.captures[next_id]
+  local next_position = create_position(bufnr, next_name, next_match)
+  local right, left = position, next_position
+  positions[#positions + 1] = {
+    name = "org_checkbox_empty",
+    type = "expr",
+    item = left.item .. " " .. right.item,
+    start_row = left.start_row,
+    start_col = left.start_col,
+    end_row = right.end_row,
+    end_col = right.end_col,
+  }
+end
+
 --- Get the position objects for each time of item we are concealing
 ---@param bufnr number
 ---@param start_row number
@@ -119,8 +166,6 @@ end
 ---@return Position[]
 local function get_ts_positions(bufnr, start_row, end_row, root)
   local positions = {}
-  -- TODO: This query does not work because the grammar recognises [ ] as three expressions not one
-  -- (((expr) @_todo (#eq? @_todo "[ ]")) @todo)
   local query = vim.treesitter.parse_query(
     "org",
     [[
@@ -135,25 +180,24 @@ local function get_ts_positions(bufnr, start_row, end_row, root)
         ((expr "[" "-" @_org_check_in_progress "]") @org_checkbox_cancelled
         (#eq? @org_checkbox_cancelled "[-]"))))
 
+      (listitem . (bullet) . (paragraph .
+        (expr "[") @org_checkbox.left (#eq? @org_checkbox.left "[") .
+        (expr "]") @org_checkbox.right (#eq? @org_checkbox.right "]"))
+        @_org_checkbox_empty (#match? @_org_checkbox_empty "^\\[ \\]"))
     ]]
   )
-  for _, match, metadata in query:iter_matches(root, bufnr, start_row, end_row) do
+  for _, match, _ in query:iter_matches(root, bufnr, start_row, end_row) do
     for id, node in pairs(match) do
       local name = query.captures[id]
-      local node_data = metadata[id]
-      local type = node:type()
-      local row1, col1, row2, col2 = node:range()
       if not vim.startswith(name, "_") then
-        positions[#positions + 1] = {
-          name = name,
-          type = type,
-          item = vim.treesitter.get_node_text(node, bufnr),
-          start_row = row1,
-          start_col = col1,
-          end_row = row2,
-          end_col = col2,
-          metadata = node_data,
-        }
+        local position = create_position(bufnr, name, node)
+        -- FIXME: this logic is a workaround for the lack of a proper node
+        -- for an empty check box it should be removed once one is added.
+        if name:match("org_checkbox%..+") then
+          add_empty_checkbox(bufnr, name, match, query, position, positions)
+        else
+          positions[#positions + 1] = position
+        end
       end
     end
   end
