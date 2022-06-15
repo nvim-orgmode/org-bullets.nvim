@@ -18,13 +18,13 @@ local list_groups = {
 local defaults = {
   show_current_line = false,
   symbols = {
-    headlines = { "◉", "○", "✸", "✿" },
+    headlines = { " ", " ", " " },
     checkboxes = {
-      half = { "", "OrgCancelled" },
-      done = { "✓", "OrgDone" },
-      undone = { "˟", "OrgTSCheckbox" },
+      half = { "", "OrgTSCheckboxHalfChecked" },
+      done = { "", "OrgTSCheckboxChecked" },
+      undone = { "", "OrgTSCheckbox" },
     },
-    bullet = "•",
+    bullet = "",
   },
   indent = true,
   -- TODO: should this read from the user's conceal settings?
@@ -74,7 +74,7 @@ local markers = {
   -- Checkboxes [x]
   expr = function(str, conf)
     local symbols = conf.symbols.checkboxes
-    if str:match("X") then
+    if str:match("[Xx]") then
       return { { "[", "OrgTSCheckboxChecked" }, symbols.done, { "]", "OrgTSCheckboxChecked" } }
     elseif str:match("-") then
       return {
@@ -82,8 +82,6 @@ local markers = {
         symbols.half,
         { "]", "OrgTSCheckboxHalfChecked" },
       }
-      --[[ elseif str:match(" ") then
-      return { { "[", "OrgTSCheckbox" }, symbols.undone, { "]", "OrgTSCheckbox" } } ]]
     end
   end,
   -- List bullets *,+,-
@@ -131,8 +129,12 @@ local function get_ts_positions(bufnr, start_row, end_row, root)
     [[
       (stars) @stars
       (bullet) @bullet
-      ((expr) @_done (#eq? @_done "[X]")) @done
-      ((expr) @_half (#eq? @_half "[-]")) @half
+      (listitem . (bullet) . (paragraph .
+        (expr "[" "str" @_org_checkbox_check "]") @_org_checkbox_done
+        (#match? @_org_checkbox_done "^\\[[xX]\\]$"))) @org_checkbox_done
+      (listitem . (bullet) . (paragraph .
+        ((expr "[" "-" @_org_check_in_progress "]") @_org_checkbox
+        (#eq? @_org_checkbox "[-]")) @org_checkbox_cancelled))
     ]]
   )
   for _, node, metadata in query:iter_captures(root, bufnr, start_row, end_row) do
