@@ -128,27 +128,34 @@ local function get_ts_positions(bufnr, start_row, end_row, root)
       (bullet) @bullet
 
       (listitem . (bullet) . (paragraph .
-        (expr "[" "str" @_org_checkbox_check "]") @_org_checkbox_done
-        (#match? @_org_checkbox_done "^\\[[xX]\\]$"))) @org_checkbox_done
+        (expr "[" "str" @_org_checkbox_check "]") @org_checkbox_done
+        (#match? @org_checkbox_done "^\\[[xX]\\]$")))
 
       (listitem . (bullet) . (paragraph .
-        ((expr "[" "-" @_org_check_in_progress "]") @_org_checkbox
-        (#eq? @_org_checkbox "[-]")) @org_checkbox_cancelled))
+        ((expr "[" "-" @_org_check_in_progress "]") @org_checkbox_cancelled
+        (#eq? @org_checkbox_cancelled "[-]"))))
 
     ]]
   )
-  for _, node, metadata in query:iter_captures(root, bufnr, start_row, end_row) do
-    local type = node:type()
-    local row1, col1, row2, col2 = node:range()
-    positions[#positions + 1] = {
-      type = type,
-      item = vim.treesitter.get_node_text(node, bufnr),
-      start_row = row1,
-      start_col = col1,
-      end_row = row2,
-      end_col = col2,
-      metadata = metadata,
-    }
+  for _, match, metadata in query:iter_matches(root, bufnr, start_row, end_row) do
+    for id, node in pairs(match) do
+      local name = query.captures[id]
+      local node_data = metadata[id]
+      local type = node:type()
+      local row1, col1, row2, col2 = node:range()
+      if not vim.startswith(name, "_") then
+        positions[#positions + 1] = {
+          name = name,
+          type = type,
+          item = vim.treesitter.get_node_text(node, bufnr),
+          start_row = row1,
+          start_col = col1,
+          end_row = row2,
+          end_col = col2,
+          metadata = node_data,
+        }
+      end
+    end
   end
   return positions
 end
