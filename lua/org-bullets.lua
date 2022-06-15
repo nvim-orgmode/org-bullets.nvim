@@ -211,7 +211,12 @@ local function get_mark_positions(bufnr, start_row, end_row)
   local parser = get_parser(bufnr)
   local positions = {}
   parser:for_each_tree(function(tstree, _)
-    positions = get_ts_positions(bufnr, start_row, end_row, tstree:root())
+    local root = tstree:root()
+    local root_start_row, _, root_end_row, _ = root:range()
+    if root_start_row > start_row or root_end_row < start_row then
+      return
+    end
+    positions = get_ts_positions(bufnr, start_row, end_row, root)
   end)
   return positions
 end
