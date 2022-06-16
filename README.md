@@ -29,7 +29,7 @@ use {"akinsho/org-bullets.nvim", config = function()
       -- headlines can be a list
       headlines = { "◉", "○", "✸", "✿" },
       -- or a function that receives the defaults and returns a list
-      symbols = function(default_list)
+      headlines = function(default_list)
         table.insert(default_list, "♥")
         return default_list
       end,
