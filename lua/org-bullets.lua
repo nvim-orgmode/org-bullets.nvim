@@ -68,7 +68,7 @@ local markers = {
   stars = function(str, conf)
     local level = #str <= 0 and 0 or #str
     local symbols = conf.symbols.headlines
-    local symbol = add_symbol_padding((symbols[level] or conf.symbols[1]), level, conf.indent)
+    local symbol = add_symbol_padding((symbols[level] or symbols[1]), level, conf.indent)
     local highlight = org_headline_hl .. level
     return { { symbol, highlight } }
   end,
