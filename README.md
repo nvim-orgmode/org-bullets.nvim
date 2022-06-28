@@ -21,6 +21,26 @@ _see below for a simpler conceal-based solution_
 
 ## Installation
 
+#### With packer.nvim
+
+```lua
+use 'akinsho/org-bullets.nvim'
+```
+
+## Usage
+
+To use the defaults use:
+
+```lua
+use {'akinsho/org-bullets.nvim', config = function()
+  require('org-bullets').setup()
+end}
+```
+
+The full options available are:
+
+**NOTE**: Do **NOT** copy and paste this block as it is not valid, it is just intended to show the available configuration options
+
 ```lua
 use {"akinsho/org-bullets.nvim", config = function()
   require("org-bullets").setup {
@@ -41,7 +61,6 @@ use {"akinsho/org-bullets.nvim", config = function()
     }
   }
 end}
-
 ```
 
 ### Conceal-based alternative
