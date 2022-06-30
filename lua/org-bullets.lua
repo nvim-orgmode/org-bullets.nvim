@@ -170,7 +170,8 @@ local function get_ts_positions(bufnr, start_row, end_row, root)
     "org",
     [[
       (stars) @stars
-      (bullet) @bullet
+      ((bullet) @bullet
+        (#match? @bullet "[-\*\+]"))
 
       (listitem . (bullet) . (paragraph .
         (expr "[" "str" @_org_checkbox_check "]") @org_checkbox_done
