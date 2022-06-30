@@ -20,7 +20,7 @@ local defaults = {
   symbols = {
     headlines = { "◉", "○", "✸", "✿" },
     checkboxes = {
-      cancelled = { "", "OrgCancelled" },
+      half = { "", "OrgTSCheckboxHalfChecked" },
       done = { "✓", "OrgDone" },
       todo = { "˟", "OrgTODO" },
     },
@@ -79,7 +79,7 @@ local markers = {
     if str:match("[Xx]") then
       text = symbols.done
     elseif str:match("-") then
-      text = symbols.cancelled
+      text = symbols.half
     end
     return { { "[", "NonText" }, text, { "]", "NonText" } }
   end,
