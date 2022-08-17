@@ -149,7 +149,7 @@ local function get_ts_positions(bufnr, start_row, end_row, root)
 
       (checkbox "[ ]") @org_checkbox
       (checkbox status: (expr "str") @_org_checkbox_done_str (#any-of? @_org_checkbox_done_str "x" "X")) @org_checkbox_done
-      (checkbox status: (expr "-")) @org_checkbox_cancelled
+      (checkbox status: (expr "-")) @org_checkbox_half
     ]]
   )
   for _, match, _ in query:iter_matches(root, bufnr, start_row, end_row) do
