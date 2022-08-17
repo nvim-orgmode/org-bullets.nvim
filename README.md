@@ -54,7 +54,7 @@ use {"akinsho/org-bullets.nvim", config = function()
         return default_list
       end,
       checkboxes = {
-        cancelled = { "", "OrgCancelled" },
+        half = { "", "OrgTSCheckboxHalfChecked" },
         done = { "✓", "OrgDone" },
         todo = { "˟", "OrgTODO" },
       },
