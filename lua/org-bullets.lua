@@ -73,7 +73,7 @@ local markers = {
     return { { symbol, highlight } }
   end,
   -- Checkboxes [x]
-  expr = function(str, conf)
+  checkbox = function(str, conf)
     local symbols = conf.symbols.checkboxes
     local text = symbols.todo
     if str:match("[Xx]") then
@@ -132,32 +132,6 @@ local function create_position(bufnr, name, node)
   }
 end
 
---- A workaround for matching an empty checkbox since it is not returned as a single node
----@param bufnr number
----@param name string
----@param match table
----@param query table
----@param position Position
----@param positions Position[]
-local function add_empty_checkbox(bufnr, name, match, query, position, positions)
-  if name:match("left") then
-    return
-  end
-  local next_id, next_match = next(match)
-  local next_name = query.captures[next_id]
-  local next_position = create_position(bufnr, next_name, next_match)
-  local right, left = position, next_position
-  positions[#positions + 1] = {
-    name = "org_checkbox_empty",
-    type = "expr",
-    item = left.item .. " " .. right.item,
-    start_row = left.start_row,
-    start_col = left.start_col,
-    end_row = right.end_row,
-    end_col = right.end_col,
-  }
-end
-
 --- Get the position objects for each time of item we are concealing
 ---@param bufnr number
 ---@param start_row number
@@ -173,32 +147,16 @@ local function get_ts_positions(bufnr, start_row, end_row, root)
       ((bullet) @bullet
         (#match? @bullet "[-\*\+]"))
 
-      (listitem . (bullet) . (paragraph .
-        (expr "[" "str" @_org_checkbox_check "]") @org_checkbox_done
-        (#match? @org_checkbox_done "^\\[[xX]\\]$")))
-
-      (listitem . (bullet) . (paragraph .
-        ((expr "[" "-" @_org_check_in_progress "]") @org_checkbox_cancelled
-        (#eq? @org_checkbox_cancelled "[-]"))))
-
-      (listitem . (bullet) . (paragraph .
-        (expr "[") @org_checkbox.left (#eq? @org_checkbox.left "[") .
-        (expr "]") @org_checkbox.right (#eq? @org_checkbox.right "]"))
-        @_org_checkbox_empty (#match? @_org_checkbox_empty "^\\[ \\]"))
+      (checkbox "[ ]") @org_checkbox
+      (checkbox status: (expr "str") @_org_checkbox_done_str (#any-of? @_org_checkbox_done_str "x" "X")) @org_checkbox_done
+      (checkbox status: (expr "-")) @org_checkbox_cancelled
     ]]
   )
   for _, match, _ in query:iter_matches(root, bufnr, start_row, end_row) do
     for id, node in pairs(match) do
       local name = query.captures[id]
       if not vim.startswith(name, "_") then
-        local position = create_position(bufnr, name, node)
-        -- FIXME: this logic is a workaround for the lack of a proper node
-        -- for an empty check box it should be removed once one is added.
-        if name:match("org_checkbox%..+") then
-          add_empty_checkbox(bufnr, name, match, query, position, positions)
-        else
-          positions[#positions + 1] = position
-        end
+        positions[#positions + 1] = create_position(bufnr, name, node)
       end
     end
   end
