@@ -6,10 +6,14 @@ local NAMESPACE = api.nvim_create_namespace("org-bullets")
 local org_headline_hl = "OrgHeadlineLevel"
 
 local list_groups = {
-  ["-"] = "OrgHeadlineLevel1",
-  ["+"] = "OrgHeadlineLevel2",
-  ["*"] = "OrgHeadlineLevel3",
+  ["-"] = "OrgBulletsDash",
+  ["+"] = "OrgBulletsPlus",
+  ["*"] = "OrgBulletsStar",
 }
+
+vim.api.nvim_set_hl(0, 'OrgBulletsDash', { link = 'OrgHeadlineLevel1'})
+vim.api.nvim_set_hl(0, 'OrgBulletsPlus', { link = 'OrgHeadlineLevel2'})
+vim.api.nvim_set_hl(0, 'OrgBulletsStar', { link = 'OrgHeadlineLevel3'})
 
 ---@class BulletsConfig
 ---@field public show_current_line boolean
