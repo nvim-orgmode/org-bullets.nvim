@@ -22,7 +22,7 @@ vim.api.nvim_set_hl(0, 'OrgBulletsStar', { link = 'OrgHeadlineLevel3'})
 local defaults = {
   show_current_line = false,
   symbols = {
-    list_bullet = "•",
+    list = "•",
     headlines = { "◉", "○", "✸", "✿" },
     checkboxes = {
       half = { "", "OrgTSCheckboxHalfChecked" },
@@ -90,7 +90,7 @@ local markers = {
   end,
   -- List bullets *,+,-
   bullet = function(str, conf)
-    local symbol = add_symbol_padding(conf.symbols.list_bullet, (#str - 1), true)
+    local symbol = add_symbol_padding(conf.symbols.list, (#str - 1), true)
     return { { symbol, list_groups[vim.trim(str)] } }
   end,
 }
