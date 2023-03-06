@@ -193,24 +193,16 @@ local function set_position_marks(bufnr, positions, conf)
   end
 end
 
-local get_parser = (function()
-  local parsers = {}
-  return function(bufnr)
-    if parsers[bufnr] then
-      return parsers[bufnr]
-    end
-    parsers[bufnr] = vim.treesitter.get_parser(bufnr, "org", {})
-    return parsers[bufnr]
-  end
-end)()
-
 --- Get the position of the relevant org mode items to conceal
 ---@param bufnr number
 ---@param start_row number
 ---@param end_row number
 ---@return Position[]
 local function get_mark_positions(bufnr, start_row, end_row)
-  local parser = get_parser(bufnr)
+  local parser = treesitter.get_parser(bufnr, "org", {})
+  if not parser then
+    return {}
+  end
   local positions = {}
   parser:for_each_tree(function(tstree, _)
     local root = tstree:root()
