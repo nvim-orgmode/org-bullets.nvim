@@ -1,6 +1,6 @@
 local M = {}
 
-local api = vim.api
+local api, treesitter = vim.api, vim.treesitter
 
 local NAMESPACE = api.nvim_create_namespace("org-bullets")
 local org_headline_hl = "OrgHeadlineLevel"
@@ -10,10 +10,6 @@ local list_groups = {
   ["+"] = "OrgBulletsPlus",
   ["*"] = "OrgBulletsStar",
 }
-
-vim.api.nvim_set_hl(0, 'OrgBulletsDash', { link = 'OrgHeadlineLevel1'})
-vim.api.nvim_set_hl(0, 'OrgBulletsPlus', { link = 'OrgHeadlineLevel2'})
-vim.api.nvim_set_hl(0, 'OrgBulletsStar', { link = 'OrgHeadlineLevel3'})
 
 ---@class BulletsConfig
 ---@field public show_current_line boolean
@@ -62,11 +58,9 @@ local function add_symbol_padding(symbol, padding_spaces, padding_in_front)
   end
 end
 
----Sets of pairs {pattern = handler}
----handler
----@param str string
----@param conf BulletsConfig
----@return string symbol, string highlight_group
+--- @alias Markers table<fun(str: string, conf: BulletsConfig): string[][]>
+
+---@type Markers
 local markers = {
   -- FIXME relying on the TS node types as keys for each marker is brittle
   -- these should be changed to distinct constants
@@ -113,7 +107,7 @@ local function set_mark(bufnr, virt_text, lnum, start_col, end_col, highlight)
   })
   if not ok then
     vim.schedule(function()
-      vim.notify_once(result, "error", { title = "Org bullets" })
+      vim.notify_once(result, vim.log.levels.ERROR, { title = "Org bullets" })
     end)
   end
 end
@@ -129,7 +123,7 @@ local function create_position(bufnr, name, node)
   return {
     name = name,
     type = type,
-    item = vim.treesitter.get_node_text(node, bufnr),
+    item = treesitter.get_node_text(node, bufnr),
     start_row = row1,
     start_col = col1,
     end_row = row2,
@@ -145,7 +139,7 @@ end
 ---@return Position[]
 local function get_ts_positions(bufnr, start_row, end_row, root)
   local positions = {}
-  local query = vim.treesitter.parse_query(
+  local query = treesitter.parse_query(
     "org",
     [[
       (stars) @stars
@@ -229,12 +223,20 @@ local function get_mark_positions(bufnr, start_row, end_row)
   return positions
 end
 
+local function set_highlights()
+  api.nvim_set_hl(0, "OrgBulletsDash", { link = "OrgHeadlineLevel1" })
+  api.nvim_set_hl(0, "OrgBulletsPlus", { link = "OrgHeadlineLevel2" })
+  api.nvim_set_hl(0, "OrgBulletsStar", { link = "OrgHeadlineLevel3" })
+end
+
 local ticks = {}
 ---Save the user config and initialise the plugin
 ---@param conf BulletsConfig
 function M.setup(conf)
   conf = conf or {}
+  set_highlights()
   set_config(conf)
+
   api.nvim_set_decoration_provider(NAMESPACE, {
     on_start = function(_, tick)
       local buf = api.nvim_get_current_buf()
