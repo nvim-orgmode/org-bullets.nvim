@@ -107,7 +107,7 @@ local function set_mark(bufnr, virt_text, lnum, start_col, end_col, highlight)
   })
   if not ok then
     vim.schedule(function()
-      vim.notify_once(result, vim.log.levels.ERROR, { title = "Org bullets" })
+      vim.notify_once(tostring(result), vim.log.levels.ERROR, { title = "Org bullets" })
     end)
   end
 end
@@ -115,7 +115,7 @@ end
 --- Create a position object
 ---@param bufnr number
 ---@param name string
----@param node userdata
+---@param node TSNode
 ---@return Position
 local function create_position(bufnr, name, node)
   local type = node:type()
@@ -131,6 +131,10 @@ local function create_position(bufnr, name, node)
   }
 end
 
+-- TODO: remove this when treesitter.query is stable
+---@diagnostic disable-next-line: undefined-field
+local parse = treesitter.query and treesitter.query.parse or treesitter.parse_query
+
 --- Get the position objects for each time of item we are concealing
 ---@param bufnr number
 ---@param start_row number
@@ -139,7 +143,7 @@ end
 ---@return Position[]
 local function get_ts_positions(bufnr, start_row, end_row, root)
   local positions = {}
-  local query = treesitter.parse_query(
+  local query = parse(
     "org",
     [[
       (stars) @stars
