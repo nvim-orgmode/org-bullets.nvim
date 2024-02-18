@@ -11,12 +11,15 @@ local list_groups = {
   ["*"] = "OrgBulletsStar",
 }
 
+---@class OrgBulletsSymbols
+---@field list? string | false
+---@field headlines? string[] | function(symbols: string[]) | false
+---@field checkboxes? table<'half' | 'done' | 'todo', string[]> | false
+
 ---@class BulletsConfig
----@field public show_current_line boolean
----@field public symbols string[] | function(symbols: string[]): string[]
----@field public indent boolean
+---@field public symbols OrgBulletsSymbols
+---@field public indent? boolean
 local defaults = {
-  show_current_line = false,
   symbols = {
     list = "•",
     headlines = { "◉", "○", "✸", "✿" },
@@ -67,6 +70,9 @@ local markers = {
   stars = function(str, conf)
     local level = #str <= 0 and 0 or #str
     local symbols = conf.symbols.headlines
+    if not symbols then
+      return false
+    end
     local symbol = add_symbol_padding((symbols[level] or symbols[1]), level, conf.indent)
     local highlight = org_headline_hl .. level
     return { { symbol, highlight } }
@@ -74,6 +80,9 @@ local markers = {
   -- Checkboxes [x]
   checkbox = function(str, conf)
     local symbols = conf.symbols.checkboxes
+    if not symbols then
+      return false
+    end
     local text = symbols.todo
     if str:match("[Xx]") then
       text = symbols.done
@@ -84,7 +93,11 @@ local markers = {
   end,
   -- List bullets *,+,-
   bullet = function(str, conf)
-    local symbol = add_symbol_padding(conf.symbols.list, (#str - 1), true)
+    local symbols = conf.symbols.list
+    if not symbols then
+      return false
+    end
+    local symbol = add_symbol_padding(symbols, (#str - 1), true)
     return { { symbol, list_groups[vim.trim(str)] } }
   end,
 }
