@@ -110,6 +110,10 @@ local markers = {
 ---@param end_col integer
 ---@param highlight string?
 local function set_mark(bufnr, virt_text, lnum, start_col, end_col, highlight)
+  if not virt_text then
+    return
+  end
+
   local ok, result = pcall(api.nvim_buf_set_extmark, bufnr, NAMESPACE, lnum, start_col, {
     end_col = end_col,
     hl_group = highlight,
