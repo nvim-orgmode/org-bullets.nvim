@@ -55,6 +55,8 @@ use {"akinsho/org-bullets.nvim", config = function()
         table.insert(default_list, "♥")
         return default_list
       end,
+      -- or false to disable the symbol. Works for all symbols
+      headlines = false,
       checkboxes = {
         half = { "", "OrgTSCheckboxHalfChecked" },
         done = { "✓", "OrgDone" },
