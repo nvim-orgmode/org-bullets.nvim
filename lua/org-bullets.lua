@@ -240,7 +240,7 @@ end
 
 local ticks = {}
 ---Save the user config and initialise the plugin
----@param conf BulletsConfig
+---@param conf? BulletsConfig
 function M.setup(conf)
   conf = conf or {}
   set_highlights()
