@@ -3,7 +3,7 @@ local M = {}
 local api, treesitter = vim.api, vim.treesitter
 
 local NAMESPACE = api.nvim_create_namespace("org-bullets")
-local org_headline_hl = "OrgHeadlineLevel"
+local org_headline_hl = "@org.headline.level"
 
 local list_groups = {
   ["-"] = "OrgBulletsDash",
@@ -24,9 +24,9 @@ local defaults = {
     list = "•",
     headlines = { "◉", "○", "✸", "✿" },
     checkboxes = {
-      half = { "", "OrgTSCheckboxHalfChecked" },
-      done = { "✓", "OrgDone" },
-      todo = { "˟", "OrgTODO" },
+      half = { "", "@org.checkbox.halfchecked" },
+      done = { "✓", "@org.keyword.done" },
+      todo = { "˟", "@org.keyword.todo" },
     },
   },
   indent = true,
@@ -237,9 +237,9 @@ local function get_mark_positions(bufnr, start_row, end_row)
 end
 
 local function set_highlights()
-  api.nvim_set_hl(0, "OrgBulletsDash", { link = "OrgHeadlineLevel1" })
-  api.nvim_set_hl(0, "OrgBulletsPlus", { link = "OrgHeadlineLevel2" })
-  api.nvim_set_hl(0, "OrgBulletsStar", { link = "OrgHeadlineLevel3" })
+  api.nvim_set_hl(0, "OrgBulletsDash", { link = "@org.headline.level1" })
+  api.nvim_set_hl(0, "OrgBulletsPlus", { link = "@org.headline.level2" })
+  api.nvim_set_hl(0, "OrgBulletsStar", { link = "@org.headline.level3" })
 end
 
 local ticks = {}
