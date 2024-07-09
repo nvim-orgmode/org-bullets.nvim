@@ -58,9 +58,9 @@ use {"akinsho/org-bullets.nvim", config = function()
       -- or false to disable the symbol. Works for all symbols
       headlines = false,
       checkboxes = {
-        half = { "", "OrgTSCheckboxHalfChecked" },
-        done = { "✓", "OrgDone" },
-        todo = { "˟", "OrgTODO" },
+        half = { "", "@org.checkbox.halfchecked" },
+        done = { "✓", "@org.keyword.done" },
+        todo = { "˟", "@org.keyword.todo" },
       },
     }
   }
