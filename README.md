@@ -46,6 +46,8 @@ use {"akinsho/org-bullets.nvim", config = function()
   require("org-bullets").setup {
     concealcursor = false, -- If false then when the cursor is on a line underlying characters are visible
     symbols = {
+      -- default: do not repeat the headlines list. use first icon only after all used once.
+      wrap = false,
       -- list symbol
       list = "•",
       -- headlines can be a list
