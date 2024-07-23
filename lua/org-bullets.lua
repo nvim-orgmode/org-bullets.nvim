@@ -21,6 +21,7 @@ local list_groups = {
 ---@field public indent? boolean
 local defaults = {
   symbols = {
+    wrap = false,
     list = "•",
     headlines = { "◉", "○", "✸", "✿" },
     checkboxes = {
@@ -73,7 +74,13 @@ local markers = {
     if not symbols then
       return false
     end
-    local symbol = add_symbol_padding((symbols[level] or symbols[1]), level, conf.indent)
+    local symbol
+    if not conf.symbols.wrap then
+      symbol = add_symbol_padding((symbols[level] or symbols[1]), level, conf.indent)
+    else
+      local symbolIndex = ((level - 1) % #symbols) + 1
+      symbol = add_symbol_padding(symbols[symbolIndex], level, conf.indent)
+    end
     local highlight = org_headline_hl .. level
     return { { symbol, highlight } }
   end,
