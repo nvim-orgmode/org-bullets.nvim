@@ -73,8 +73,22 @@ local markers = {
     if not symbols then
       return false
     end
-    local symbol = add_symbol_padding((symbols[level] or symbols[1]), level, conf.indent)
+
+    local symbol_config = symbols[level] or symbols[1]
+    local symbol_text = symbol_config
     local highlight = org_headline_hl .. level
+
+    if type(symbol_config) == 'table' then
+      if symbol_config[1] then
+        symbol_text = symbol_config[1]
+      end
+
+      if symbol_config[2] then
+        highlight = symbol_config[2]
+      end
+    end
+
+    local symbol = add_symbol_padding(symbol_text, level, conf.indent)
     return { { symbol, highlight } }
   end,
   -- Checkboxes [x]

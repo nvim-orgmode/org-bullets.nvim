@@ -57,6 +57,14 @@ use {"akinsho/org-bullets.nvim", config = function()
       end,
       -- or false to disable the symbol. Works for all symbols
       headlines = false,
+      -- or a table of tables that provide a name
+      -- and (optional) highlight group for each headline level
+      headlines = { 
+        { "◉", "MyBulletL1" }
+        { "○", "MyBulletL2" },
+        { "✸", "MyBulletL3" },
+        { "✿", "MyBulletL4" },
+      },
       checkboxes = {
         half = { "", "@org.checkbox.halfchecked" },
         done = { "✓", "@org.keyword.done" },
