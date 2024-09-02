@@ -186,7 +186,7 @@ local function get_ts_positions(bufnr, start_row, end_row, root)
       (checkbox status: (expr "-")) @org_checkbox_half
     ]]
   )
-  for _, match, _ in query:iter_matches(root, bufnr, start_row, end_row) do
+  for _, match, _ in query:iter_matches(root, bufnr, start_row, end_row, { all = false }) do
     for id, node in pairs(match) do
       local name = query.captures[id]
       if not vim.startswith(name, "_") then
