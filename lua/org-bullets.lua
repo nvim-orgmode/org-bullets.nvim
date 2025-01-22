@@ -78,7 +78,7 @@ local markers = {
     local symbol_text = symbol_config
     local highlight = org_headline_hl .. level
 
-    if type(symbol_config) == 'table' then
+    if type(symbol_config) == "table" then
       if symbol_config[1] then
         symbol_text = symbol_config[1]
       end
@@ -250,10 +250,28 @@ local function get_mark_positions(bufnr, start_row, end_row)
   return positions
 end
 
+---Function that checks whether a given highlight group
+---has already been defined by the user.
+---@param name string
+---@return boolean
+local function highlight_group_exists(name)
+  local hl = vim.api.nvim_get_hl(0, { name = name })
+  return not vim.tbl_isempty(hl)
+end
+
+---Only set the highlight groups if the user
+---has not already set them.
 local function set_highlights()
-  api.nvim_set_hl(0, "OrgBulletsDash", { link = "@org.headline.level1" })
-  api.nvim_set_hl(0, "OrgBulletsPlus", { link = "@org.headline.level2" })
-  api.nvim_set_hl(0, "OrgBulletsStar", { link = "@org.headline.level3" })
+  local highlight_map = {
+    OrgBulletsDash = "@org.headline.level1",
+    OrgBulletsPlus = "@org.headline.level2",
+    OrgBulletsStar = "@org.headline.level3",
+  }
+  for hl, link in pairs(highlight_map) do
+    if not highlight_group_exists(hl) then
+      api.nvim_set_hl(0, hl, { link = link })
+    end
+  end
 end
 
 local ticks = {}
