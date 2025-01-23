@@ -251,9 +251,9 @@ local function get_mark_positions(bufnr, start_row, end_row)
 end
 
 local function set_highlights()
-  api.nvim_set_hl(0, "OrgBulletsDash", { link = "@org.headline.level1" })
-  api.nvim_set_hl(0, "OrgBulletsPlus", { link = "@org.headline.level2" })
-  api.nvim_set_hl(0, "OrgBulletsStar", { link = "@org.headline.level3" })
+  api.nvim_set_hl(0, "OrgBulletsDash", { link = "@org.headline.level1", default = true })
+  api.nvim_set_hl(0, "OrgBulletsPlus", { link = "@org.headline.level2", default = true })
+  api.nvim_set_hl(0, "OrgBulletsStar", { link = "@org.headline.level3", default = true })
 end
 
 local ticks = {}
