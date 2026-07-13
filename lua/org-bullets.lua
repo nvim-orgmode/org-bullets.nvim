@@ -76,7 +76,7 @@ local markers = {
 
     local symbol_config = symbols[level] or symbols[1]
     local symbol_text = symbol_config
-    local highlight = org_headline_hl .. level
+    local highlight = org_headline_hl .. level .. ".org"
 
     if type(symbol_config) == 'table' then
       if symbol_config[1] then
@@ -253,9 +253,9 @@ local function get_mark_positions(bufnr, start_row, end_row)
 end
 
 local function set_highlights()
-  api.nvim_set_hl(0, "OrgBulletsDash", { link = "@org.headline.level1", default = true })
-  api.nvim_set_hl(0, "OrgBulletsPlus", { link = "@org.headline.level2", default = true })
-  api.nvim_set_hl(0, "OrgBulletsStar", { link = "@org.headline.level3", default = true })
+  api.nvim_set_hl(0, "OrgBulletsDash", { link = "@org.headline.level1.org", default = true })
+  api.nvim_set_hl(0, "OrgBulletsPlus", { link = "@org.headline.level2.org", default = true })
+  api.nvim_set_hl(0, "OrgBulletsStar", { link = "@org.headline.level3.org", default = true })
 end
 
 local ticks = {}
